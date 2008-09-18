@@ -1,0 +1,273 @@
+\documentclass[a4paper]{report}
+\usepackage{Rnews}
+\usepackage[round]{natbib}
+\usepackage{amsmath}
+\usepackage{indentfirst}
+\bibliographystyle{abbrvnat}
+
+%\VignetteIndexEntry{agreement: Analyse the agreement between two measurement methods}                                                 
+%\VignettePackage{agreement}
+%\VignetteDepends{agreement,stats,utils,tools}
+%\VignetteKeyword{agreement}
+
+\begin{document}
+
+\begin{article}
+\title{\lq agreement\rq: Analyse the agreement between two measurement methods}
+\author{by Fabio Frascati, Elia Biganzoli and Bruno Mario Cesana}
+
+\maketitle
+
+\indent Assessing agreement between two measurement methods (Y, X) is not an immediate
+statistical approach. Among the several approaches, \emph{Altman} and \emph{Bland}
+method \citep{R:Altman+Bland:1983} is prone to subjective interpretation leading
+to not appropriate conclusions.\\ \indent The Concordance Correlation Coefficient (CCC)
+has been proposed by \emph{Lin} \citep{R:Lin:1989} as an objective agreement index
+and it is obtained by the product of the Precision (\emph{Pearson}'s correlation
+coefficient, $\rho_{YX}$) and \emph{Accuracy} ($C_b = 2 \sigma_X \sigma_Y\, /\, [\sigma^2_Y + \sigma^2_X + (\mu_X - \mu_Y)^2]$)
+as $\rho_{YX} \cdot C_b$. Furthermore, a formal agreement decision approach has been proposed by
+\cite{R:Lin+Heyadat:2002}, in the context of a bivariate Gaussian (Y, X) distribution,
+by using CCC and several other indices such as \emph{Precision}, \emph{Accuracy}, \emph{Total Deviation Index}
+(TDI) and \emph{Coverage Probability} (CP) of different agreement boundary.\\ \indent It is worthwhile to stress that
+in this case the role of the null ($H_0$) and alternative ($H_1$) hypotheses has to be reversed: $H_0$ is of no
+agreement and $H_1$ is of  agreement.  So, the testing procedure is usually based on the confidence interval
+approach, such as in the equivalence studies and in the non-inferiority controlled clinical trials models.\\
+\indent The aim of this paper is to illustrate the \textbf{agreement} package (in \textbf{R} language) that
+allows to calculate the agreement indices, proposed by \cite{R:Lin+Heyadat:2002}, and their transformed values
+for obtaining a better approximation to the Gaussian distribution. Furthermore, and as a more relevant tool,
+this package investigates their asymptotic properties according to a simulation
+study under the bivariate Gaussian model. So, having fixed the five parameters of the model ($\mu_Y$, $\mu_X$, $\sigma^2_Y$, $\sigma^2_X$, $\rho_{YX}$ or $\sigma_{YX}$)
+under the null ($H_0$) or the  alternative ($H_1$) hypothesis it is possible to investigate, for example,
+the influence of different sample sizes on the asymptotic properties of the agreement considered indices.
+In addition, this allows to obtain the different proportions of rejection, given the sample sizes.\\ \indent In the
+next section we will introduce the context of the topic in this article. In the section \emph{Analytical Expressions}
+we will explain analytical formulae when the target values are random (measured with error) while in the sections \emph{The features of lin.simulation()}
+and \emph{How-to} we will give some details of the current \emph{release} of \textbf{agreement} and we will provide an example.
+
+\section{Analytical Expressions}
+
+\textbf{agreement} package implements the function \verb+lin.simulation()+ which performs:
+
+\begin{itemize}
+\item[(a)] the simulation study
+\item[(b)] the calculation of the five agreement indices proposed by \cite{R:Lin+Heyadat:2002} together
+           their approximately Gaussian distributed transformations:
+           \begin{itemize}
+           \item Precision ($Z$ inverse hyperbolic tangent transformation)
+           \item Accuracy (logit transformation)
+           \item CCC ($Z$ inverse hyperbolic tangent transformation)
+           \item TDI (W logarithmic transformation for mean square error MSD, not directly TDI)
+           \item CPk (logit transformation)
+           \end{itemize}
+\item[(c)] the calculation of their theoretical values under $H_0$ and under $H_1$
+\item[(d)] the rejection proportions of $H_0$ (upper or lower unilateral confidence interval above or under the pertinent agreement threshold, respectively)
+\item[(e)] produces a summary of the simulation results
+\end{itemize}
+
+This paper shows the results for CCC and its $Z$ transformation for sake of simplicity. One can easily
+find the same pattern for the other agreement indices. Particularly, if the lower unilateral $(1- \alpha) \cdot 100 \%$
+confidence limit of the $Z$ transformed CCC value is greater than its theoretical value under H0 we can conclude for the agreement:
+
+\begin{equation}
+Z \ge \zeta_0 + \Phi^{-1}(1 - \alpha)\, \sigma_{Z_0}
+\end{equation}
+
+where $\zeta_0$ and $\sigma_{Z_0}$ are the asymptotic expected value and standard deviation of the \textbf{Z}
+transformation of \textbf{CCC} under $H_0$. It is a one tail test with a right region of rejection. It is clear
+that we have to antitransform $\zeta_0 + \Phi^{-1}(1 -\alpha)\, \sigma_{Z_0}$ to obtain the threshold in terms of
+\textbf{CCC}. The asymptotic power of accepting agreement by using \textbf{Z} is:
+
+\begin{equation}
+P_Z = \Phi\left[\frac{\zeta_0 - \zeta_1 + \Phi^{-1}\left(1 - \alpha\right)\, \sigma_{Z_0}}{\sigma_{Z_1}}\right]
+\end{equation}
+
+\section{The features of lin.simulation()}
+
+We illustrate some of the capabilities of the \textbf{agreement} package using the \texttt{lin.simulation()} function.
+Seven inputs are available for this command:
+
+\begin{itemize}
+\setlength{\itemsep}{0in}
+\item \texttt{NUM\_CAMP}\quad number of samples to simulate. Its default value is $5000$.
+\item \texttt{NUM}\quad sample size. Its default value is $30$.
+\item \texttt{matH0}\quad matrix of parameters under null hypothesis ($H_0$). It has $2$ rows and $3$ columns:
+
+$$
+\begin{pmatrix}
+\sigma^2_x  & \sigma_{xy}  & \mu_x \\
+\sigma_{xy} & \sigma^2_{y} & \mu_y
+\end{pmatrix}
+$$
+
+\item \texttt{matH1}\quad matrix of parameters under alternative hypothesis ($H_1$). It has exactly the same structure of \texttt{matH0}.
+\item \texttt{underH0}\quad logical parameter to determine what condition to simulate. Its default value is \texttt{TRUE} (simulation under $H_0$).
+\item \texttt{ALPHA\_CI}\quad leading to a $1 - \alpha$ confidence level with a unilateral confidence interval. Its default value is $0.05$
+\item \verb+la_CP1+\quad the threshold used for TDI. Its default value is $0.9$
+\end{itemize}
+
+The funcion \texttt{lin.simulation()} has a list of eight objects as output (see Figure~\ref{figure:summarysim}):
+
+\begin{itemize}
+\setlength{\itemsep}{0in}
+\item \texttt{table}\quad it is a matrix. Each row represents a
+measure of agreement and each column a summary of the simulation.
+\item \texttt{underH0}\quad see above
+\item \texttt{matH0}\quad see above
+\item \texttt{matH1}\quad see above
+\item \texttt{NUM\_CAMP}\quad see above
+\item \texttt{NUM}\quad see above
+\item \texttt{alpha}\quad see above
+\item \texttt{rho}\quad is the value for the correlation coefficient under $H_0$ (if \verb+underH0 = TRUE+) or $H_1$ (if \verb+underH0 = FALSE+)
+\end{itemize}
+
+\texttt{table} is the most important; its columns are:
+
+\begin{itemize}
+\setlength{\itemsep}{0in}
+\item \textbf{Th val}\quad theoretical value of each agreement measurement
+\item \textbf{Thr}\quad inverse transformation of the threshold for each transformation
+\item \textbf{Th prob}\quad theoretical value of probability. It should be equal to $\alpha$
+\item \textbf{Mean of est}\quad antitransformation of the mean estimate of the transformation of each measure of agreement
+\item \textbf{Std of est}\quad standard deviation of the transformation of each measure of agreement
+\item \textbf{Mean of std}\quad mean of the estimates of the standard deviation of each transformation
+\item \textbf{Prop rej}\quad the proportion of samples which lie in the rejection region under $H_0$
+\end{itemize}
+
+\section{How-to}
+
+We must first select a single simulation case. We can choose between null hypothesis (\verb+underH0 = TRUE+) or the alternative (\verb+underH0 = FALSE+).
+We must set sample size (for example \verb+NUM = 30+) and the number of samples (for example \verb+NUM_CAMP = 10000+).
+Now we must have two different matrices which represent the parameters of the bivariate normal distribution under $H_0$ (no agreement) and $H_1$ (yes agreement).
+The values tested in literature \cite[Table 2]{R:Lin+Heyadat:2002} are translated in R code by:
+
+\begin{verbatim}
+> sigma2x0   <- 1 / 1.15
+> sigma2y0   <- 1.15
+> covxy0     <- 0.95 * sqrt(1 / 1.15 * 1.15)
+> mux0       <- 0
+> muy0       <- 0.15
+> matH0      <- matrix(0,nrow = 2,ncol = 3)
+> matH0[1,1] <- sigma2x0
+> matH0[1,2] <- covxy0
+> matH0[1,3] <- mux0
+> matH0[2,1] <- covxy0
+> matH0[2,2] <- sigma2y0
+> matH0[2,3] <- muy0
+> matH0
+          [,1] [,2] [,3]
+[1,] 0.8695652 0.95 0.00
+[2,] 0.9500000 1.15 0.15
+\end{verbatim}
+
+and
+
+\begin{verbatim}
+> sigma2x1   <- 1 / 1.1
+> sigma2y1   <- 1.1
+> covxy1     <- 0.9662055 * sqrt(1 / 1.1 * 1.1)
+> mux1       <- 0
+> muy1       <- 0.1
+> matH1      <- matrix(0,nrow = 2,ncol = 3)
+> matH1[1,1] <- sigma2x1
+> matH1[1,2] <- covxy1
+> matH1[1,3] <- mux1
+> matH1[2,1] <- covxy1
+> matH1[2,2] <- sigma2y1
+> matH1[2,3] <- muy1
+> matH1
+          [,1]      [,2] [,3]
+[1,] 0.9090909 0.9662055  0.0
+[2,] 0.9662055 1.1000000  0.1
+\end{verbatim}
+
+Let $\alpha = 0.05$ (default value). Now we have set all the parameters to run \verb+lin.simulation()+ (see Figure~\ref{figure:summarysim}).
+
+\section{Conclusions}
+
+The first column of \verb+table+ object is the theoretical value of the indices (\textbf{Th val}) while
+the second column (\textbf{Thr}) represent the threshold used to determine the rejection region.
+Theoretical values of $\alpha$ and $1 - \beta$ are reported in the third column (\textbf{Th prob}).
+The fourth column (\textbf{Mean of est}) represents the inverse transformation of the mean estimate
+of the agreement measure (see above). We expect the first and the fourth columns to be similar in order
+to consider the estimate robust. The same conclusion is made between the fifth and the sixth columns which
+represent the standard deviation of the transformation (\textbf{Std of est}) and the mean of the standard
+deviation (\textbf{Mean of std}) respectively. In the seventh column (\textbf{Prop rej}) it is calculated
+the proportion between \verb+NUM_CAMP+ runs fall in the rejection region. If we simulate under $H_0$ then
+we expect that this value is about $\alpha = 0.05$ (type one error probability) while we expect it is about
+the true value $1 - \beta$ (power) if we simulate under $H_1$.
+
+\begin{figure*}[t]
+\begin{center}
+\begin{boxedverbatim}
+> lin.simulation(matH0 = matH0,matH1 = matH1,NUM = 30,NUM_CAMP = 10000,underH0 = TRUE)
+$table
+           Th val     Thr Th prob Mean of est Std of est Mean of std Prop rej
+Precision 0.95000 0.97283    0.05     0.95160    0.19110     0.19245     0.07
+Accuracy  0.97940 0.99254    0.05     0.97847    0.63310     0.64053     0.00
+TDI       0.61997 0.09204    0.05     0.62036    0.25665     0.26147     0.11
+CCC       0.93043 0.95994    0.05     0.92812    0.17014     0.16935     0.04
+Cpk1      0.83026 0.90620    0.05     0.82192    0.39877     0.40945     0.03
+CPk3      0.97892 0.99465    0.05     0.97761    0.83295     0.83488     0.04
+
+$underH0
+[1] TRUE
+
+$matH0
+          [,1] [,2] [,3]
+[1,] 0.8695652 0.95 0.00
+[2,] 0.9500000 1.15 0.15
+
+$matH1
+          [,1]      [,2] [,3]
+[1,] 0.9090909 0.9662055  0.0
+[2,] 0.9662055 1.1000000  0.1
+
+$NUM_CAMP
+[1] 10000
+
+$NUM
+[1] 30
+
+$alpha
+[1] 0.05
+
+$rho
+[1] 0.95
+\end{boxedverbatim}
+\end{center}
+\caption{\label{figure:summarysim}
+The output of the simulation by \texttt{lin.simulation()} command.}
+\end{figure*}
+
+\section{Summary}
+
+In this paper we describe the \textbf{agreement} package. This provides the \verb+lin.simulation()+ function
+to simulate and to perform a complete analysis of an agreement measurement study.
+
+\begin{thebibliography}{1}
+\expandafter\ifx\csname natexlab\endcsname\relax\def\natexlab#1{#1}\fi
+\expandafter\ifx\csname url\endcsname\relax
+  \def\url#1{{\tt #1}}\fi
+
+\bibitem[Altman and Bland, 1983]{R:Altman+Bland:1983}
+D.G.~Altman and J.M.~Bland.
+\newblock Measurement in Medicine: The Analysis of Method Comparison Studies.
+\newblock {\em The Statistician}, 32\penalty0
+  :\penalty0 302--317, 1983.
+
+\bibitem[Lin, 1989]{R:Lin:1989}
+L.~Lin.
+\newblock A Concordance Correlation Coefficient to Evaluate Reproducibility.
+\newblock {\em Biometrics}, 45\penalty0
+  :\penalty0 255--258, 1989.
+
+\bibitem[Lin et al., 2002]{R:Lin+Heyadat:2002}
+L.~Lin and A.S.~Heyadat and B.~Sinha and M.~Yang.
+\newblock Statistical Methods in Assessing Agreement: Models, Issues, and Tools.
+\newblock {\em JASA}, 97\penalty0
+  :\penalty0 257--270, 2002.
+\end{thebibliography}
+
+\end{article}
+
+\end{document}
